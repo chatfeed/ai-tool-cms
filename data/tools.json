@@ -1,0 +1,140 @@
+[
+  {
+    "id": "tool-title-generator",
+    "status": "draft",
+    "slug": "ai-title-generator",
+    "name": "AI Title Generator",
+    "category": "Marketing",
+    "title": "Free AI Title Generator for Blogs, Ads, and Social Posts",
+    "description": "Generate clear, clickable title ideas from a topic, tone, and audience in seconds.",
+    "h1": "Free AI Title Generator",
+    "intro": "Create SEO-friendly titles for articles, landing pages, email campaigns, and social posts. Tune the tone and count, then generate ready-to-edit ideas.",
+    "fields": [
+      {
+        "key": "topic",
+        "label": "Topic",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Describe the article, product, or campaign",
+        "help": "Be specific about the subject and desired angle."
+      },
+      {
+        "key": "tone",
+        "label": "Tone",
+        "type": "select",
+        "required": true,
+        "defaultValue": "practical",
+        "options": [
+          "practical",
+          "bold",
+          "friendly",
+          "professional",
+          "playful"
+        ]
+      },
+      {
+        "key": "count",
+        "label": "Number of titles",
+        "type": "number",
+        "required": true,
+        "defaultValue": "5",
+        "min": 1,
+        "max": 12
+      }
+    ],
+    "prompt": {
+      "system": "You are an expert SEO copywriter.",
+      "userTemplate": "Generate {{count}} {{tone}} title ideas for this topic: {{topic}}. Return a numbered list."
+    },
+    "result": {
+      "format": "list",
+      "copyable": true
+    },
+    "seo": {
+      "steps": [
+        "Enter your topic or content brief.",
+        "Choose a tone that matches your audience.",
+        "Generate titles and refine the strongest options."
+      ],
+      "useCases": [
+        "Blog post titles",
+        "YouTube video titles",
+        "Landing page headlines",
+        "Ad campaign concepts"
+      ],
+      "faqs": [
+        {
+          "question": "Can these titles be used for SEO pages?",
+          "answer": "Yes. The tool is designed to create concise titles that can be reviewed and adapted for search intent."
+        },
+        {
+          "question": "Should I edit the generated titles?",
+          "answer": "Yes. Use the output as a strong draft, then align wording with your brand, keyword research, and SERP context."
+        }
+      ]
+    }
+  },
+  {
+    "id": "tool-summary",
+    "status": "published",
+    "slug": "ai-text-summarizer",
+    "name": "AI Text Summarizer",
+    "category": "Writing",
+    "title": "Free AI Text Summarizer for Articles and Notes",
+    "description": "Paste long text and get a concise summary with key points.",
+    "h1": "Free AI Text Summarizer",
+    "intro": "Turn long passages into compact summaries for research, notes, content planning, and internal documentation.",
+    "fields": [
+      {
+        "key": "text",
+        "label": "Text to summarize",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Paste your article, transcript, or notes"
+      },
+      {
+        "key": "style",
+        "label": "Summary style",
+        "type": "select",
+        "required": true,
+        "defaultValue": "bullet points",
+        "options": [
+          "bullet points",
+          "executive brief",
+          "plain language"
+        ]
+      }
+    ],
+    "prompt": {
+      "system": "You summarize text accurately and clearly.",
+      "userTemplate": "Summarize the following text in {{style}} style: {{text}}"
+    },
+    "result": {
+      "format": "markdown",
+      "copyable": true
+    },
+    "seo": {
+      "steps": [
+        "Paste the text you want to condense.",
+        "Choose the summary style.",
+        "Review the result and copy it into your workflow."
+      ],
+      "useCases": [
+        "Research notes",
+        "Meeting transcripts",
+        "Article summaries",
+        "Learning material"
+      ],
+      "faqs": [
+        {
+          "question": "Is this useful for long articles?",
+          "answer": "Yes. Longer inputs benefit from clearer summaries, especially when the source material has multiple sections."
+        },
+        {
+          "question": "Can I change the format?",
+          "answer": "The admin can configure field options and prompt templates for each tool page."
+        }
+      ]
+    }
+  }
+]
