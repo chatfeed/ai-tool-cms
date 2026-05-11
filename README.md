@@ -9,6 +9,10 @@ ToolForge AI is an SEO-first AI tool page CMS. It lets you configure form-based 
 - Configurable AI tool pages: fields, prompts, result format, and SEO blocks
 - Admin workspace with tool table, search, filters, SEO readiness, and bulk publish actions
 - Keyword library for bulk draft tool generation
+- Discovery pipeline:
+  - import keyword lines from Google Search Console / Trends / other tools
+  - AI opportunity scoring (intent, competition, phrase quality, demand)
+  - one-click draft tool generation from selected opportunities
 - Automatic internal linking based on category and keyword tags
 - Runs log for generated outputs
 - Draft preview support
@@ -67,6 +71,49 @@ npm run db:seed
 ```
 
 For PostgreSQL, update the Prisma datasource provider and set `DATABASE_URL` to your production connection string. See [docs/database.md](docs/database.md).
+
+## Discovery Input Format
+
+In the Admin `Discovery` tab, paste one keyword per line:
+
+```text
+keyword, search_volume(optional), competition(optional)
+ai resume summary generator, 1900, 0.42
+youtube title generator, 5400, 0.58
+```
+
+Then:
+
+1. Analyze opportunities
+2. Select high-score rows
+3. Generate draft tools
+
+### Google Search Console CSV
+
+Set source to `gsc`, then paste CSV rows directly from Search Console export:
+
+```text
+query,clicks,impressions,ctr,position
+ai resume summary generator,31,1900,1.63%,8.7
+youtube title generator,96,5400,1.78%,6.2
+```
+
+The system will parse query rows and estimate demand/competition signals for opportunity scoring.
+
+### Discovery Signal Fetch (Current MVP)
+
+The Discovery tab also supports `Fetch signals` via a provider abstraction.
+
+Current provider:
+
+- `internal_seed`: derives opportunity candidates from your keyword library and recent run patterns.
+- `google_trends_free`: fetches trending search topics from Google Trends public RSS (no API key).
+
+This is a scaffold for plugging in real connectors next, such as:
+
+- Google Search Console API
+- Google Trends API wrapper
+- DataForSEO / Semrush / Ahrefs / SerpAPI
 
 ## License
 

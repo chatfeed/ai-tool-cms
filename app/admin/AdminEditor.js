@@ -10,12 +10,14 @@ import {
   Plus,
   Rocket,
   Save,
+  Sparkles,
   ShieldCheck,
   ShieldAlert,
   SearchCheck,
   Network,
   Trash2
 } from "lucide-react";
+import { parseDiscoveryInput } from "@/lib/discovery-parser";
 
 const fieldTypes = ["text", "textarea", "select", "number"];
 const resultFormats = ["text", "list", "markdown", "json"];
@@ -27,6 +29,8 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
   const [keywords, setKeywords] = useState(initialKeywords);
   const [selectedKeywordIds, setSelectedKeywordIds] = useState([]);
   const [selectedPublishIds, setSelectedPublishIds] = useState([]);
+  const [discoveryOpportunities, setDiscoveryOpportunities] = useState([]);
+  const [selectedOpportunityIds, setSelectedOpportunityIds] = useState([]);
   const [selectedId, setSelectedId] = useState(initialTools[0]?.id);
   const [isEditorOpen, setIsEditorOpen] = useState(false);
   const [activeTab, setActiveTab] = useState("tools");
@@ -152,6 +156,7 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
           <div className="tabs" role="tablist">
             {[
               ["tools", "Tools"],
+              ["discovery", "Discovery"],
               ["growth", "Growth"],
               ["runs", "Runs"],
               ["settings", "Settings"]
@@ -184,6 +189,16 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
             updateField={updateField}
           />
         ) : null}
+        {activeTab === "discovery" ? (
+          <DiscoveryPanel
+            opportunities={discoveryOpportunities}
+            selectedOpportunityIds={selectedOpportunityIds}
+            setKeywords={setKeywords}
+            setOpportunities={setDiscoveryOpportunities}
+            setSelectedOpportunityIds={setSelectedOpportunityIds}
+            setTools={setTools}
+          />
+        ) : null}
         {activeTab === "growth" ? (
           <GrowthPanel
             keywords={keywords}
@@ -202,6 +217,201 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
         ) : null}
       </section>
     </div>
+  );
+}
+
+function DiscoveryPanel({
+  opportunities,
+  selectedOpportunityIds,
+  setKeywords,
+  setOpportunities,
+  setSelectedOpportunityIds,
+  setTools
+}) {
+  const [source, setSource] = useState("manual");
+  const [fetchProvider, setFetchProvider] = useState("internal_seed");
+  const [fetchGeo, setFetchGeo] = useState("US");
+  const [input, setInput] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const [isAnalyzing, setIsAnalyzing] = useState(false);
+  const [isCreating, setIsCreating] = useState(false);
+
+  async function analyze() {
+    setMessage("");
+    setError("");
+    const queries = parseDiscoveryInput(input, source);
+
+    if (queries.length === 0) {
+      setError("Paste at least one valid keyword row.");
+      return;
+    }
+
+    setIsAnalyzing(true);
+    const response = await fetch("/api/admin/discovery/analyze", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ queries })
+    });
+    const payload = await response.json();
+    setIsAnalyzing(false);
+
+    if (!response.ok) {
+      setError(payload.error || "Could not analyze opportunities.");
+      return;
+    }
+
+    setOpportunities(payload.opportunities || []);
+    setSelectedOpportunityIds([]);
+    setMessage(`Analyzed ${payload.opportunities?.length || 0} opportunities.`);
+  }
+
+  async function fetchSignals() {
+    setMessage("");
+    setError("");
+    setIsAnalyzing(true);
+
+    const response = await fetch("/api/admin/discovery/fetch", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ provider: fetchProvider, geo: fetchGeo })
+    });
+    const payload = await response.json();
+    setIsAnalyzing(false);
+
+    if (!response.ok) {
+      setError(payload.error || "Could not fetch discovery signals.");
+      return;
+    }
+
+    const lines = (payload.queries || []).map((query) => {
+      const volume = Number.isFinite(query.searchVolume) ? query.searchVolume : "";
+      const competition = Number.isFinite(query.competition) ? query.competition : "";
+      return `${query.keyword}, ${volume}, ${competition}`;
+    });
+
+    setSource("internal-logs");
+    setInput(lines.join("\n"));
+    if (payload.warning) {
+      setError(payload.warning);
+    }
+    setMessage(`Fetched ${lines.length} keyword signals from ${payload.providerUsed || payload.providerRequested} (${payload.geo || fetchGeo}).`);
+  }
+
+  function toggleOpportunity(id) {
+    setSelectedOpportunityIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function selectHighScore() {
+    setSelectedOpportunityIds(opportunities.filter((item) => item.score >= 70).map((item) => item.id));
+  }
+
+  async function createTools() {
+    setMessage("");
+    setError("");
+    setIsCreating(true);
+
+    const response = await fetch("/api/admin/discovery/create-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        selectedIds: selectedOpportunityIds,
+        opportunities
+      })
+    });
+    const payload = await response.json();
+    setIsCreating(false);
+
+    if (!response.ok) {
+      setError(payload.error || "Could not create tools.");
+      return;
+    }
+
+    setTools(payload.tools);
+    setKeywords(payload.keywords);
+    setSelectedOpportunityIds([]);
+    setMessage(`Created ${payload.createdTools} draft tools.`);
+  }
+
+  return (
+    <EditorPanel title="Keyword Discovery Pipeline">
+      <div className="growth-summary">
+        <div>
+          <p className="eyebrow">Discovery flow</p>
+          <h3>Keyword signals to generated tools</h3>
+          <p>Paste keyword rows from GSC or other sources, score opportunities, then generate draft tools in one step.</p>
+        </div>
+        <Sparkles size={30} />
+      </div>
+      <div className="tool-table-toolbar">
+        <select className="input" value={source} onChange={(event) => setSource(event.target.value)}>
+          <option value="manual">manual</option>
+          <option value="gsc">gsc</option>
+          <option value="trends">trends</option>
+          <option value="keyword-tool">keyword-tool</option>
+          <option value="internal-logs">internal-logs</option>
+        </select>
+        <select className="input" value={fetchProvider} onChange={(event) => setFetchProvider(event.target.value)}>
+          <option value="internal_seed">internal_seed</option>
+          <option value="google_trends_free">google_trends_free</option>
+        </select>
+        <select className="input" value={fetchGeo} onChange={(event) => setFetchGeo(event.target.value)}>
+          <option value="US">US</option>
+          <option value="GB">GB</option>
+          <option value="CA">CA</option>
+          <option value="AU">AU</option>
+          <option value="IN">IN</option>
+          <option value="SG">SG</option>
+          <option value="DE">DE</option>
+          <option value="FR">FR</option>
+          <option value="JP">JP</option>
+          <option value="BR">BR</option>
+          <option value="MX">MX</option>
+        </select>
+      </div>
+      <textarea
+        className="input"
+        value={input}
+        onChange={(event) => setInput(event.target.value)}
+        placeholder={
+          source === "gsc"
+            ? "Paste Google Search Console CSV rows (with header).\nquery,clicks,impressions,ctr,position\nai resume summary generator,31,1900,1.63%,8.7"
+            : "keyword, search_volume(optional), competition(optional)\nai resume summary generator, 1900, 0.42\nyoutube title generator, 5400, 0.58"
+        }
+      />
+      <div className="actions" style={{ marginTop: 0 }}>
+        <button className="btn" type="button" onClick={fetchSignals} disabled={isAnalyzing}>Fetch signals</button>
+        <button className="btn" type="button" onClick={analyze} disabled={isAnalyzing}>{isAnalyzing ? "Analyzing..." : "Analyze opportunities"}</button>
+        <button className="btn" type="button" onClick={selectHighScore} disabled={opportunities.length === 0}>Select score &gt;= 70</button>
+        <button className="btn primary" type="button" onClick={createTools} disabled={selectedOpportunityIds.length === 0 || isCreating}>
+          {isCreating ? "Creating..." : "Generate draft tools"}
+        </button>
+      </div>
+      {message ? <p className="notice success">{message}</p> : null}
+      {error ? <p className="error">{error}</p> : null}
+      <div className="publish-table">
+        {opportunities.map((item) => (
+          <div className="publish-row" key={item.id}>
+            <input
+              type="checkbox"
+              checked={selectedOpportunityIds.includes(item.id)}
+              onChange={() => toggleOpportunity(item.id)}
+              aria-label={`Select ${item.phrase}`}
+            />
+            <div>
+              <strong>{item.phrase}</strong>
+              <p className="muted-line">{item.source} · {item.category} · {item.toolType}</p>
+            </div>
+            <span className={`score-pill ${item.score >= 80 ? "good" : item.score >= 60 ? "warn" : ""}`}>{item.score}%</span>
+            <span className="tag">{item.intent}</span>
+            <div className="publish-blockers">
+              <span>{item.rationale}</span>
+            </div>
+            <span className="muted-line">vol {item.searchVolume} · comp {item.competition}</span>
+          </div>
+        ))}
+      </div>
+    </EditorPanel>
   );
 }
 
