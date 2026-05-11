@@ -6,7 +6,7 @@ export const metadata = {
   description: "Browse published AI tools generated from configurable forms, prompts, and SEO content."
 };
 
-export default async function ToolsPage() {
+export default async function EnglishToolsPage() {
   const tools = await getPublishedTools();
   return <ToolsPageContent locale="en" tools={tools} />;
 }

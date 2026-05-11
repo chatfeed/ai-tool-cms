@@ -22,7 +22,7 @@ export async function generateMetadata({ params }) {
     title: tool.title,
     description: tool.description,
     alternates: {
-      canonical: `${baseUrl}/${tool.slug}`,
+      canonical: `${baseUrl}/zh/${tool.slug}`,
       languages: {
         en: `${baseUrl}/en/${tool.slug}`,
         zh: `${baseUrl}/zh/${tool.slug}`
@@ -31,7 +31,7 @@ export async function generateMetadata({ params }) {
     openGraph: {
       title: tool.title,
       description: tool.description,
-      url: `${baseUrl}/${tool.slug}`,
+      url: `${baseUrl}/zh/${tool.slug}`,
       siteName: "ToolForge AI",
       type: "website"
     },
@@ -43,7 +43,7 @@ export async function generateMetadata({ params }) {
   };
 }
 
-export default async function ToolPage({ params, searchParams }) {
+export default async function ChineseToolPage({ params, searchParams }) {
   const tool = await getToolBySlug(params.slug);
   const publishedTools = await getPublishedTools();
   const keywords = await readKeywords();
@@ -55,5 +55,5 @@ export default async function ToolPage({ params, searchParams }) {
   }
 
   const relatedTools = suggestRelatedTools(tool, publishedTools, keywords, 3);
-  return <ToolPageContent isPreview={isPreview} locale="en" relatedTools={relatedTools} tool={tool} />;
+  return <ToolPageContent isPreview={isPreview} locale="zh" relatedTools={relatedTools} tool={tool} />;
 }

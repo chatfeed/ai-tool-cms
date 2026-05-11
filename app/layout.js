@@ -1,6 +1,7 @@
 import "./globals.css";
 import Link from "next/link";
 import { Sparkles } from "lucide-react";
+import { getDictionary } from "@/lib/i18n";
 
 export const metadata = {
   title: "ToolForge AI",
@@ -8,6 +9,8 @@ export const metadata = {
 };
 
 export default function RootLayout({ children }) {
+  const t = getDictionary("en");
+
   return (
     <html lang="en">
       <body>
@@ -20,9 +23,11 @@ export default function RootLayout({ children }) {
               <span>ToolForge AI</span>
             </Link>
             <nav className="nav" aria-label="Primary navigation">
-              <Link href="/tools">Tools</Link>
-              <Link href="/admin">Admin</Link>
-              <Link href="/sitemap.xml">Sitemap</Link>
+              <Link href="/tools">{t.navTools}</Link>
+              <Link href="/admin">{t.navAdmin}</Link>
+              <Link href="/sitemap.xml">{t.navSitemap}</Link>
+              <Link href="/en">EN</Link>
+              <Link href="/zh">中文</Link>
             </nav>
           </header>
           {children}

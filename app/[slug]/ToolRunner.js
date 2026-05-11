@@ -2,8 +2,10 @@
 
 import { useMemo, useState } from "react";
 import { Clipboard, Loader2, Wand2 } from "lucide-react";
+import { getDictionary } from "@/lib/i18n";
 
-export default function ToolRunner({ tool, preview = false }) {
+export default function ToolRunner({ locale = "en", tool, preview = false }) {
+  const t = getDictionary(locale);
   const initialValues = useMemo(() => {
     return Object.fromEntries(tool.fields.map((field) => [field.key, field.defaultValue || ""]));
   }, [tool.fields]);
@@ -53,30 +55,30 @@ export default function ToolRunner({ tool, preview = false }) {
   return (
     <div className="tool-layout">
       <section className="panel pad">
-        <h2>Generate result</h2>
+        <h2>{t.generateResult}</h2>
         <form className="form-grid" onSubmit={onSubmit}>
           {tool.fields.map((field) => (
-            <Field key={field.key} field={field} value={values[field.key] || ""} onChange={updateValue} />
+            <Field key={field.key} field={field} selectLabel={t.selectOption} value={values[field.key] || ""} onChange={updateValue} />
           ))}
           {error ? <p className="error">{error}</p> : null}
           <button className="btn primary" disabled={isLoading} type="submit">
             {isLoading ? <Loader2 size={17} /> : <Wand2 size={17} />}
-            {isLoading ? "Generating..." : "Generate"}
+            {isLoading ? t.generating : t.generate}
           </button>
         </form>
       </section>
 
       <aside className="panel pad">
         <div className="panel-head">
-          <h2>Result</h2>
+          <h2>{t.result}</h2>
           {meta ? <span className="tag">{meta.provider} · {meta.durationMs}ms</span> : null}
         </div>
-        <div className="result-box">{result || "Your generated output will appear here."}</div>
+        <div className="result-box">{result || t.emptyResult}</div>
         {result && tool.result?.copyable ? (
           <div className="actions">
             <button className="btn" type="button" onClick={copyResult}>
               <Clipboard size={17} />
-              {copied ? "Copied" : "Copy"}
+              {copied ? t.copied : t.copy}
             </button>
           </div>
         ) : null}
@@ -85,7 +87,7 @@ export default function ToolRunner({ tool, preview = false }) {
   );
 }
 
-function Field({ field, value, onChange }) {
+function Field({ field, selectLabel, value, onChange }) {
   const common = {
     id: field.key,
     name: field.key,
@@ -102,7 +104,7 @@ function Field({ field, value, onChange }) {
         <textarea className="input" {...common} />
       ) : field.type === "select" ? (
         <select className="input" {...common}>
-          <option value="" disabled>Select an option</option>
+          <option value="" disabled>{selectLabel}</option>
           {(field.options || []).map((option) => (
             <option value={option} key={option}>{option}</option>
           ))}
