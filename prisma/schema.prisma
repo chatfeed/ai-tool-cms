@@ -1,0 +1,60 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+model Tool {
+  id          String   @id
+  status      String   @default("draft")
+  slug        String   @unique
+  name        String
+  category    String
+  title       String
+  description String
+  h1          String
+  intro       String
+  fields      Json
+  prompt      Json
+  result      Json
+  seo         Json
+  sourceKeywordId String?
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  sourceKeyword Keyword? @relation(fields: [sourceKeywordId], references: [id], onDelete: SetNull)
+  runs        ToolRun[]
+}
+
+model Keyword {
+  id          String   @id
+  phrase      String   @unique
+  category    String
+  intent      String   @default("tool")
+  priority    Int      @default(2)
+  status      String   @default("planned")
+  tags        Json
+  notes       String   @default("")
+  createdAt   DateTime @default(now())
+  updatedAt   DateTime @updatedAt
+  tools       Tool[]
+}
+
+model ToolRun {
+  id         String   @id
+  toolId     String
+  toolSlug   String
+  toolName   String
+  provider   String
+  values     Json
+  prompt     String
+  result     String
+  error      String?
+  durationMs Int
+  createdAt  DateTime @default(now())
+  tool       Tool     @relation(fields: [toolId], references: [id], onDelete: Cascade)
+
+  @@index([toolId, createdAt])
+}

@@ -11,6 +11,8 @@ import {
   Save,
   ShieldCheck,
   ShieldAlert,
+  SearchCheck,
+  Network,
   Trash2
 } from "lucide-react";
 
@@ -18,9 +20,11 @@ const fieldTypes = ["text", "textarea", "select", "number"];
 const resultFormats = ["text", "list", "markdown", "json"];
 const models = ["gpt-4o-mini", "gpt-4o", "gpt-4.1-mini"];
 
-export default function AdminEditor({ authEnabled, initialTools, initialRuns }) {
+export default function AdminEditor({ authEnabled, initialTools, initialRuns, initialKeywords }) {
   const [tools, setTools] = useState(initialTools);
   const [runs, setRuns] = useState(initialRuns);
+  const [keywords, setKeywords] = useState(initialKeywords);
+  const [selectedKeywordIds, setSelectedKeywordIds] = useState([]);
   const [selectedId, setSelectedId] = useState(initialTools[0]?.id);
   const [activeTab, setActiveTab] = useState("page");
   const [message, setMessage] = useState("");
@@ -171,6 +175,7 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns }) 
               ["form", "Form"],
               ["prompt", "Prompt"],
               ["seo", "SEO Blocks"],
+              ["growth", "Growth"],
               ["runs", "Runs"]
             ].map(([key, label]) => (
               <button className={activeTab === key ? "active" : ""} key={key} type="button" onClick={() => setActiveTab(key)}>
@@ -192,11 +197,156 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns }) 
         {activeTab === "seo" ? (
           <SeoPanel tool={selectedTool} updateField={updateField} />
         ) : null}
+        {activeTab === "growth" ? (
+          <GrowthPanel
+            keywords={keywords}
+            selectedKeywordIds={selectedKeywordIds}
+            setKeywords={setKeywords}
+            setSelectedKeywordIds={setSelectedKeywordIds}
+            setTools={setTools}
+            tools={tools}
+          />
+        ) : null}
         {activeTab === "runs" ? (
           <RunsPanel runs={selectedRuns} refreshRuns={refreshRuns} />
         ) : null}
       </section>
     </div>
+  );
+}
+
+function GrowthPanel({ keywords, selectedKeywordIds, setKeywords, setSelectedKeywordIds, setTools, tools }) {
+  const [draftText, setDraftText] = useState("");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const generatedKeywordIds = new Set(tools.map((tool) => tool.sourceKeywordId).filter(Boolean));
+
+  function addKeywordsFromText() {
+    const existing = new Set(keywords.map((keyword) => keyword.phrase.toLowerCase()));
+    const rows = draftText
+      .split("\n")
+      .map((row) => row.trim())
+      .filter(Boolean);
+
+    const additions = rows
+      .map((row) => {
+        const [phrase, category = "Writing", priority = "2", tags = ""] = row.split(",").map((item) => item.trim());
+        if (!phrase || existing.has(phrase.toLowerCase())) return null;
+        existing.add(phrase.toLowerCase());
+        return {
+          id: crypto.randomUUID(),
+          phrase,
+          category,
+          intent: "tool",
+          priority: Number(priority) || 2,
+          status: "planned",
+          tags: tags.split("|").map((tag) => tag.trim()).filter(Boolean),
+          notes: ""
+        };
+      })
+      .filter(Boolean);
+
+    setKeywords((current) => [...additions, ...current]);
+    setDraftText("");
+    setMessage(`${additions.length} keywords added locally. Save keywords to persist them.`);
+  }
+
+  async function saveKeywords() {
+    setMessage("");
+    setError("");
+    const response = await fetch("/api/admin/keywords", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keywords })
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setError(payload.error || "Could not save keywords.");
+      return;
+    }
+    setMessage("Keywords saved.");
+  }
+
+  async function generateTools() {
+    setMessage("");
+    setError("");
+    const response = await fetch("/api/admin/generate-tools", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ keywordIds: selectedKeywordIds })
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      setError(payload.error || "Could not generate tools.");
+      return;
+    }
+    setTools(payload.tools);
+    setKeywords(payload.keywords);
+    setSelectedKeywordIds([]);
+    setMessage(`${payload.generated} draft tools generated from selected keywords.`);
+  }
+
+  function updateKeyword(id, key, value) {
+    setKeywords((current) => current.map((keyword) => (keyword.id === id ? { ...keyword, [key]: value } : keyword)));
+  }
+
+  function toggleKeyword(id) {
+    setSelectedKeywordIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  return (
+    <EditorPanel title="Keyword Library and Bulk Generation">
+      <div className="growth-summary">
+        <div>
+          <p className="eyebrow">Auto internal linking</p>
+          <h3>Category + keyword tags</h3>
+          <p>Related tools are ranked by shared category, matching intent, and overlapping keyword tags.</p>
+        </div>
+        <Network size={30} />
+      </div>
+      <div className="editor-row">
+        <span>Bulk add</span>
+        <div className="stack">
+          <textarea
+            className="input"
+            value={draftText}
+            onChange={(event) => setDraftText(event.target.value)}
+            placeholder={"one keyword per line: phrase, category, priority, tag|tag\nexample: ai email subject line generator, Marketing, 3, email|copywriting"}
+          />
+          <div className="actions" style={{ marginTop: 0 }}>
+            <button className="btn" type="button" onClick={addKeywordsFromText}>Add to library</button>
+            <button className="btn" type="button" onClick={saveKeywords}>Save keywords</button>
+            <button className="btn primary" type="button" onClick={generateTools} disabled={selectedKeywordIds.length === 0}>Generate draft tools</button>
+          </div>
+          {message ? <p className="notice success">{message}</p> : null}
+          {error ? <p className="error">{error}</p> : null}
+        </div>
+      </div>
+      <div className="keyword-table">
+        {keywords.map((keyword) => (
+          <div className="keyword-row" key={keyword.id}>
+            <input
+              type="checkbox"
+              checked={selectedKeywordIds.includes(keyword.id)}
+              disabled={generatedKeywordIds.has(keyword.id)}
+              onChange={() => toggleKeyword(keyword.id)}
+              aria-label={`Select ${keyword.phrase}`}
+            />
+            <input className="input" value={keyword.phrase} onChange={(event) => updateKeyword(keyword.id, "phrase", event.target.value)} />
+            <input className="input" value={keyword.category} onChange={(event) => updateKeyword(keyword.id, "category", event.target.value)} />
+            <select className="input" value={keyword.priority} onChange={(event) => updateKeyword(keyword.id, "priority", Number(event.target.value))}>
+              {[1, 2, 3, 4, 5].map((priority) => <option value={priority} key={priority}>{priority}</option>)}
+            </select>
+            <input
+              className="input"
+              value={(keyword.tags || []).join(", ")}
+              onChange={(event) => updateKeyword(keyword.id, "tags", event.target.value.split(",").map((tag) => tag.trim()).filter(Boolean))}
+            />
+            <span className="tag">{generatedKeywordIds.has(keyword.id) ? "generated" : keyword.status}</span>
+          </div>
+        ))}
+      </div>
+    </EditorPanel>
   );
 }
 
@@ -310,8 +460,31 @@ function PromptPanel({ tool, updateField }) {
 }
 
 function SeoPanel({ tool, updateField }) {
+  const checks = getSeoChecks(tool);
+  const passed = checks.filter((check) => check.ok).length;
+  const score = Math.round((passed / checks.length) * 100);
+
   return (
     <EditorPanel title="SEO Blocks">
+      <div className="seo-score">
+        <div>
+          <p className="eyebrow">SEO readiness</p>
+          <strong>{score}%</strong>
+          <span>{passed} of {checks.length} checks passed</span>
+        </div>
+        <SearchCheck size={28} />
+      </div>
+      <div className="checklist">
+        {checks.map((check) => (
+          <div className={check.ok ? "check-row ok" : "check-row"} key={check.label}>
+            <span>{check.ok ? "✓" : "!"}</span>
+            <div>
+              <strong>{check.label}</strong>
+              <p>{check.help}</p>
+            </div>
+          </div>
+        ))}
+      </div>
       <ListEditor label="How-to steps" items={tool.seo.steps} onChange={(items) => updateField(["seo", "steps"], items)} placeholder="Add a step" />
       <ListEditor label="Use cases" items={tool.seo.useCases} onChange={(items) => updateField(["seo", "useCases"], items)} placeholder="Add a use case" />
       <FaqEditor items={tool.seo.faqs} onChange={(items) => updateField(["seo", "faqs"], items)} />
@@ -540,4 +713,70 @@ function keyify(value) {
     .trim()
     .replace(/[^a-z0-9_]+/g, "_")
     .replace(/^_+|_+$/g, "");
+}
+
+function getSeoChecks(tool) {
+  const titleLength = tool.title?.length || 0;
+  const descriptionLength = tool.description?.length || 0;
+  const introLength = tool.intro?.length || 0;
+  const faqCount = tool.seo?.faqs?.length || 0;
+  const stepCount = tool.seo?.steps?.length || 0;
+  const useCaseCount = tool.seo?.useCases?.length || 0;
+  const fieldCount = tool.fields?.length || 0;
+  const promptVariables = extractVariables(tool.prompt?.userTemplate || "");
+  const fieldKeys = new Set((tool.fields || []).map((field) => field.key));
+
+  return [
+    {
+      ok: titleLength >= 35 && titleLength <= 65,
+      label: "Meta title length",
+      help: `${titleLength} characters. Aim for 35-65 characters.`
+    },
+    {
+      ok: descriptionLength >= 90 && descriptionLength <= 160,
+      label: "Meta description length",
+      help: `${descriptionLength} characters. Aim for 90-160 characters.`
+    },
+    {
+      ok: Boolean(tool.h1 && tool.h1.length >= 12),
+      label: "Clear H1",
+      help: "Use a specific H1 that names the tool and outcome."
+    },
+    {
+      ok: introLength >= 90,
+      label: "Intro depth",
+      help: `${introLength} characters. Add context, audience, and outcome.`
+    },
+    {
+      ok: stepCount >= 3,
+      label: "How-to section",
+      help: `${stepCount} steps. Three or more steps help search engines understand the workflow.`
+    },
+    {
+      ok: useCaseCount >= 3,
+      label: "Use cases",
+      help: `${useCaseCount} use cases. Add multiple intents for long-tail coverage.`
+    },
+    {
+      ok: faqCount >= 2,
+      label: "FAQ schema",
+      help: `${faqCount} FAQs. Two or more Q&A items support rich structured content.`
+    },
+    {
+      ok: fieldCount > 0,
+      label: "Runnable form",
+      help: `${fieldCount} fields configured. Each SEO page should provide a real utility.`
+    },
+    {
+      ok: promptVariables.every((variable) => fieldKeys.has(variable)),
+      label: "Prompt variables",
+      help: promptVariables.length > 0
+        ? `Variables used: ${promptVariables.join(", ")}.`
+        : "Use at least one form variable in the prompt template."
+    }
+  ];
+}
+
+function extractVariables(template) {
+  return Array.from(template.matchAll(/\{\{\s*([a-zA-Z0-9_]+)\s*\}\}/g)).map((match) => match[1]);
 }

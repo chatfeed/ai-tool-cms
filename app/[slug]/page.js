@@ -1,8 +1,10 @@
 import { notFound } from "next/navigation";
 import { cookies } from "next/headers";
 import { EyeOff } from "lucide-react";
+import Link from "next/link";
 import { isAdminAuthEnabled, isAuthenticatedFromCookies } from "@/lib/auth";
-import { getPublishedTools, getToolBySlug } from "@/lib/store";
+import { suggestRelatedTools } from "@/lib/growth";
+import { getPublishedTools, getToolBySlug, readKeywords } from "@/lib/store";
 import ToolRunner from "./ToolRunner";
 
 export async function generateStaticParams() {
@@ -12,6 +14,7 @@ export async function generateStaticParams() {
 
 export async function generateMetadata({ params }) {
   const tool = await getToolBySlug(params.slug);
+  const baseUrl = process.env.NEXT_PUBLIC_SITE_URL || "http://localhost:3000";
 
   if (!tool || tool.status !== "published") {
     return {};
@@ -21,19 +24,35 @@ export async function generateMetadata({ params }) {
     title: tool.title,
     description: tool.description,
     alternates: {
-      canonical: `/${tool.slug}`
+      canonical: `${baseUrl}/${tool.slug}`
+    },
+    openGraph: {
+      title: tool.title,
+      description: tool.description,
+      url: `${baseUrl}/${tool.slug}`,
+      siteName: "ToolForge AI",
+      type: "website"
+    },
+    twitter: {
+      card: "summary",
+      title: tool.title,
+      description: tool.description
     }
   };
 }
 
 export default async function ToolPage({ params, searchParams }) {
   const tool = await getToolBySlug(params.slug);
+  const publishedTools = await getPublishedTools();
+  const keywords = await readKeywords();
   const isPreview = searchParams?.preview === "1";
   const canPreview = !isAdminAuthEnabled() || isAuthenticatedFromCookies(cookies());
 
   if (!tool || (tool.status !== "published" && (!isPreview || !canPreview))) {
     notFound();
   }
+
+  const relatedTools = suggestRelatedTools(tool, publishedTools, keywords, 3);
 
   const faqSchema = {
     "@context": "https://schema.org",
@@ -92,6 +111,26 @@ export default async function ToolPage({ params, searchParams }) {
           </div>
         ))}
       </section>
+
+      {relatedTools.length > 0 ? (
+        <section className="content-section">
+          <h2>Related AI tools</h2>
+          <div className="grid">
+            {relatedTools.map((relatedTool) => (
+              <Link className="tool-card" href={`/${relatedTool.slug}`} key={relatedTool.id}>
+                <div>
+                  <div className="tag-row">
+                    <span className="tag">{relatedTool.category}</span>
+                  </div>
+                  <h3>{relatedTool.name}</h3>
+                  <p>{relatedTool.description}</p>
+                </div>
+                <span className="btn ghost">Open tool</span>
+              </Link>
+            ))}
+          </div>
+        </section>
+      ) : null}
     </main>
   );
 }

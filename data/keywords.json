@@ -1,0 +1,22 @@
+[
+  {
+    "id": "kw-title-generator",
+    "phrase": "ai title generator",
+    "category": "Marketing",
+    "intent": "tool",
+    "priority": 3,
+    "status": "generated",
+    "tags": ["title", "copywriting", "seo"],
+    "notes": "Seed keyword mapped to the existing title generator."
+  },
+  {
+    "id": "kw-text-summarizer",
+    "phrase": "ai text summarizer",
+    "category": "Writing",
+    "intent": "tool",
+    "priority": 3,
+    "status": "generated",
+    "tags": ["summary", "writing", "productivity"],
+    "notes": "Seed keyword mapped to the existing summarizer."
+  }
+]

@@ -2,7 +2,7 @@ import AdminEditor from "./AdminEditor";
 import { redirect } from "next/navigation";
 import { cookies } from "next/headers";
 import { isAdminAuthEnabled, isAuthenticatedFromCookies } from "@/lib/auth";
-import { readRuns, readTools } from "@/lib/store";
+import { readKeywords, readRuns, readTools } from "@/lib/store";
 
 export const metadata = {
   title: "Admin | ToolForge AI",
@@ -16,6 +16,7 @@ export default async function AdminPage() {
 
   const tools = await readTools();
   const runs = await readRuns();
+  const keywords = await readKeywords();
 
   return (
     <main className="page">
@@ -23,6 +24,7 @@ export default async function AdminPage() {
         authEnabled={isAdminAuthEnabled()}
         initialTools={tools}
         initialRuns={runs}
+        initialKeywords={keywords}
       />
     </main>
   );

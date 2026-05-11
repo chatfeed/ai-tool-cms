@@ -9,6 +9,8 @@ export default function ToolRunner({ tool, preview = false }) {
   }, [tool.fields]);
   const [values, setValues] = useState(initialValues);
   const [result, setResult] = useState("");
+  const [meta, setMeta] = useState(null);
+  const [copied, setCopied] = useState(false);
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(false);
 
@@ -16,7 +18,6 @@ export default function ToolRunner({ tool, preview = false }) {
     event.preventDefault();
     setIsLoading(true);
     setError("");
-    setResult("");
 
     const response = await fetch("/api/run-tool", {
       method: "POST",
@@ -33,6 +34,10 @@ export default function ToolRunner({ tool, preview = false }) {
     }
 
     setResult(payload.result);
+    setMeta({
+      provider: payload.provider,
+      durationMs: payload.durationMs
+    });
   }
 
   function updateValue(key, value) {
@@ -41,6 +46,8 @@ export default function ToolRunner({ tool, preview = false }) {
 
   async function copyResult() {
     await navigator.clipboard.writeText(result);
+    setCopied(true);
+    window.setTimeout(() => setCopied(false), 1600);
   }
 
   return (
@@ -60,13 +67,16 @@ export default function ToolRunner({ tool, preview = false }) {
       </section>
 
       <aside className="panel pad">
-        <h2>Result</h2>
+        <div className="panel-head">
+          <h2>Result</h2>
+          {meta ? <span className="tag">{meta.provider} · {meta.durationMs}ms</span> : null}
+        </div>
         <div className="result-box">{result || "Your generated output will appear here."}</div>
         {result && tool.result?.copyable ? (
           <div className="actions">
             <button className="btn" type="button" onClick={copyResult}>
               <Clipboard size={17} />
-              Copy
+              {copied ? "Copied" : "Copy"}
             </button>
           </div>
         ) : null}
