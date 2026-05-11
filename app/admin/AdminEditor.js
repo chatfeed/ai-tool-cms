@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useMemo, useRef, useState } from "react";
 import Link from "next/link";
 import {
   Copy,
@@ -8,6 +8,7 @@ import {
   FilePlus2,
   GripVertical,
   Plus,
+  Rocket,
   Save,
   ShieldCheck,
   ShieldAlert,
@@ -25,8 +26,11 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
   const [runs, setRuns] = useState(initialRuns);
   const [keywords, setKeywords] = useState(initialKeywords);
   const [selectedKeywordIds, setSelectedKeywordIds] = useState([]);
+  const [selectedPublishIds, setSelectedPublishIds] = useState([]);
   const [selectedId, setSelectedId] = useState(initialTools[0]?.id);
-  const [activeTab, setActiveTab] = useState("page");
+  const [isEditorOpen, setIsEditorOpen] = useState(false);
+  const [activeTab, setActiveTab] = useState("tools");
+  const [toolEditorTab, setToolEditorTab] = useState("page");
   const [message, setMessage] = useState("");
   const [error, setError] = useState("");
   const [isSaving, setIsSaving] = useState(false);
@@ -52,7 +56,9 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
     const tool = createBlankTool(id, uniqueSlug("new-ai-tool", tools));
     setTools((current) => [tool, ...current]);
     setSelectedId(id);
-    setActiveTab("page");
+    setIsEditorOpen(true);
+    setActiveTab("tools");
+    setToolEditorTab("page");
     setMessage("New draft tool created. Fill it in, then save.");
   }
 
@@ -65,6 +71,7 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
     copy.slug = uniqueSlug(`${copy.slug}-copy`, tools);
     setTools((current) => [copy, ...current]);
     setSelectedId(id);
+    setIsEditorOpen(true);
     setMessage("Draft copy created.");
   }
 
@@ -113,43 +120,16 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
   }
 
   return (
-    <div className="admin-layout">
-      <aside className="panel sidebar">
-        <button className="btn primary" type="button" onClick={createTool} style={{ width: "100%", marginBottom: 12 }}>
-          <FilePlus2 size={17} />
-          New tool
-        </button>
-        {tools.map((tool) => (
-          <button
-            className="btn ghost"
-            key={tool.id}
-            type="button"
-            onClick={() => setSelectedId(tool.id)}
-            style={{ width: "100%", justifyContent: "flex-start", marginBottom: 8, background: tool.id === selectedTool.id ? "var(--soft)" : "transparent" }}
-          >
-            <span className={`status-dot ${tool.status}`} />
-            {tool.name}
-          </button>
-        ))}
-      </aside>
-
+    <div className="admin-single">
       <section className="editor">
         <div className="panel pad">
           <div className="actions admin-head">
             <div>
               <p className="eyebrow">Tool page CMS</p>
-              <h1 className="admin-title">{selectedTool.name}</h1>
-              <p className="muted-line">/{selectedTool.slug} · {selectedTool.status}</p>
+              <h1 className="admin-title">Admin workspace</h1>
+              <p className="muted-line">{tools.length} tools · {keywords.length} keywords</p>
             </div>
             <div className="actions" style={{ marginTop: 0 }}>
-              <button className="btn" type="button" onClick={duplicateTool}>
-                <Copy size={17} />
-                Duplicate
-              </button>
-              <Link className="btn" href={`/${selectedTool.slug}?preview=1`} target="_blank">
-                <Eye size={17} />
-                Preview
-              </Link>
               <button className="btn primary" type="button" onClick={saveTools} disabled={isSaving}>
                 <Save size={17} />
                 {isSaving ? "Saving..." : "Save"}
@@ -171,12 +151,10 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
           {error ? <p className="error">{error}</p> : null}
           <div className="tabs" role="tablist">
             {[
-              ["page", "Page"],
-              ["form", "Form"],
-              ["prompt", "Prompt"],
-              ["seo", "SEO Blocks"],
+              ["tools", "Tools"],
               ["growth", "Growth"],
-              ["runs", "Runs"]
+              ["runs", "Runs"],
+              ["settings", "Settings"]
             ].map(([key, label]) => (
               <button className={activeTab === key ? "active" : ""} key={key} type="button" onClick={() => setActiveTab(key)}>
                 {label}
@@ -185,17 +163,26 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
           </div>
         </div>
 
-        {activeTab === "page" ? (
-          <PagePanel tool={selectedTool} updateField={updateField} deleteTool={deleteTool} />
-        ) : null}
-        {activeTab === "form" ? (
-          <FormPanel tool={selectedTool} updateField={updateField} />
-        ) : null}
-        {activeTab === "prompt" ? (
-          <PromptPanel tool={selectedTool} updateField={updateField} />
-        ) : null}
-        {activeTab === "seo" ? (
-          <SeoPanel tool={selectedTool} updateField={updateField} />
+        {activeTab === "tools" ? (
+          <ToolsPanel
+            createTool={createTool}
+            deleteTool={deleteTool}
+            duplicateTool={duplicateTool}
+            refreshRuns={refreshRuns}
+            runs={selectedRuns}
+            selectedId={selectedId}
+            selectedPublishIds={selectedPublishIds}
+            selectedTool={selectedTool}
+            isEditorOpen={isEditorOpen}
+            setIsEditorOpen={setIsEditorOpen}
+            setSelectedId={setSelectedId}
+            setSelectedPublishIds={setSelectedPublishIds}
+            setToolEditorTab={setToolEditorTab}
+            setTools={setTools}
+            toolEditorTab={toolEditorTab}
+            tools={tools}
+            updateField={updateField}
+          />
         ) : null}
         {activeTab === "growth" ? (
           <GrowthPanel
@@ -208,10 +195,197 @@ export default function AdminEditor({ authEnabled, initialTools, initialRuns, in
           />
         ) : null}
         {activeTab === "runs" ? (
-          <RunsPanel runs={selectedRuns} refreshRuns={refreshRuns} />
+          <GlobalRunsPanel runs={runs} refreshRuns={refreshRuns} />
+        ) : null}
+        {activeTab === "settings" ? (
+          <SettingsPanel authEnabled={authEnabled} />
         ) : null}
       </section>
     </div>
+  );
+}
+
+function ToolsPanel({
+  createTool,
+  deleteTool,
+  duplicateTool,
+  refreshRuns,
+  runs,
+  selectedId,
+  selectedPublishIds,
+  selectedTool,
+  isEditorOpen,
+  setIsEditorOpen,
+  setSelectedId,
+  setSelectedPublishIds,
+  setToolEditorTab,
+  setTools,
+  toolEditorTab,
+  tools,
+  updateField
+}) {
+  const editorRef = useRef(null);
+  const [filter, setFilter] = useState("draft");
+  const [query, setQuery] = useState("");
+  const [category, setCategory] = useState("all");
+  const [message, setMessage] = useState("");
+  const [error, setError] = useState("");
+  const categories = ["all", ...Array.from(new Set(tools.map((tool) => tool.category).filter(Boolean))).sort()];
+
+  const rows = tools
+    .map((tool) => {
+      const checks = getSeoChecks(tool);
+      const score = Math.round((checks.filter((check) => check.ok).length / checks.length) * 100);
+      return { tool, score, checks };
+    })
+    .filter((row) => filter === "all" || row.tool.status === filter)
+    .filter((row) => category === "all" || row.tool.category === category)
+    .filter((row) => {
+      const haystack = `${row.tool.name} ${row.tool.slug} ${row.tool.category}`.toLowerCase();
+      return haystack.includes(query.toLowerCase());
+    })
+    .sort((first, second) => first.tool.status.localeCompare(second.tool.status) || second.score - first.score);
+
+  function toggleTool(id) {
+    setSelectedPublishIds((current) => current.includes(id) ? current.filter((item) => item !== id) : [...current, id]);
+  }
+
+  function editTool(id) {
+    setSelectedId(id);
+    setIsEditorOpen(true);
+    setToolEditorTab("page");
+    window.setTimeout(() => editorRef.current?.scrollIntoView({ behavior: "smooth", block: "start" }), 0);
+  }
+
+  async function applyStatus(status) {
+    setMessage("");
+    setError("");
+
+    const nextTools = tools.map((tool) => selectedPublishIds.includes(tool.id) ? { ...tool, status } : tool);
+    const response = await fetch("/api/admin/tools", {
+      method: "PUT",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({ tools: nextTools })
+    });
+    const payload = await response.json();
+
+    if (!response.ok) {
+      setError(payload.error || "Could not update tool statuses.");
+      return;
+    }
+
+    setTools(nextTools);
+    setSelectedPublishIds([]);
+    setMessage(`${selectedPublishIds.length} tools moved to ${status}.`);
+  }
+
+  function selectReadyDrafts() {
+    setSelectedPublishIds(
+      tools
+        .map((tool) => {
+          const checks = getSeoChecks(tool);
+          const score = Math.round((checks.filter((check) => check.ok).length / checks.length) * 100);
+          return { tool, score };
+        })
+        .filter((row) => row.tool.status === "draft" && row.score >= 80)
+        .map((row) => row.tool.id)
+    );
+  }
+
+  return (
+    <>
+    <EditorPanel
+      title="Tools"
+      action={<button className="btn primary" type="button" onClick={createTool}><FilePlus2 size={17} />New tool</button>}
+    >
+      <div className="tool-table-toolbar">
+        <input className="input" value={query} onChange={(event) => setQuery(event.target.value)} placeholder="Search name, slug, or category" />
+        <select className="input" value={filter} onChange={(event) => setFilter(event.target.value)}>
+          {["draft", "published", "all"].map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+        <select className="input" value={category} onChange={(event) => setCategory(event.target.value)}>
+          {categories.map((value) => <option value={value} key={value}>{value}</option>)}
+        </select>
+      </div>
+      <div className="publish-toolbar">
+        <div className="actions" style={{ marginTop: 0 }}>
+          <button className="btn" type="button" onClick={selectReadyDrafts}>Select ready drafts</button>
+          <button className="btn primary" type="button" onClick={() => applyStatus("published")} disabled={selectedPublishIds.length === 0}>
+            <Rocket size={17} />
+            Publish selected
+          </button>
+          <button className="btn" type="button" onClick={() => applyStatus("draft")} disabled={selectedPublishIds.length === 0}>Move to draft</button>
+        </div>
+      </div>
+      {message ? <p className="notice success">{message}</p> : null}
+      {error ? <p className="error">{error}</p> : null}
+      {!isEditorOpen ? <p className="muted-line">Use the table to search and batch manage tools. Click Edit on a row to open the editor below.</p> : null}
+      <div className="publish-table">
+        {rows.map(({ tool, score, checks }) => {
+          const blockers = checks.filter((check) => !check.ok).slice(0, 2);
+          return (
+            <div className="publish-row" key={tool.id}>
+              <input
+                type="checkbox"
+                checked={selectedPublishIds.includes(tool.id)}
+                onChange={() => toggleTool(tool.id)}
+                aria-label={`Select ${tool.name}`}
+              />
+              <div>
+                <strong>{tool.name}</strong>
+                <p className="muted-line">/{tool.slug} · {tool.category}</p>
+              </div>
+              <span className={`score-pill ${score >= 80 ? "good" : score >= 60 ? "warn" : ""}`}>{score}%</span>
+              <span className="tag">{tool.status}</span>
+              <div className="publish-blockers">
+                {blockers.length === 0 ? <span className="muted-line">Ready</span> : blockers.map((blocker) => <span key={blocker.label}>{blocker.label}</span>)}
+              </div>
+              <button className="btn ghost" type="button" onClick={() => editTool(tool.id)}>Edit</button>
+            </div>
+          );
+        })}
+      </div>
+    </EditorPanel>
+    {selectedTool && isEditorOpen ? (
+      <EditorPanel
+        anchorRef={editorRef}
+        title={`Edit ${selectedTool.name}`}
+        action={
+          <div className="actions" style={{ marginTop: 0 }}>
+            <button className="btn" type="button" onClick={duplicateTool}><Copy size={17} />Duplicate</button>
+            <Link className="btn" href={`/${selectedTool.slug}?preview=1`} target="_blank"><Eye size={17} />Preview</Link>
+            <button className="btn" type="button" onClick={() => setIsEditorOpen(false)}>Close</button>
+          </div>
+        }
+      >
+        <div className="selected-tool-strip">
+          <div>
+            <strong>{selectedTool.name}</strong>
+            <p className="muted-line">/{selectedTool.slug} · {selectedTool.category} · {selectedTool.status}</p>
+          </div>
+          <span className={`status-dot ${selectedTool.status}`} />
+        </div>
+        <div className="tabs compact-tabs" role="tablist">
+          {[
+            ["page", "Page"],
+            ["form", "Form"],
+            ["prompt", "Prompt"],
+            ["seo", "SEO Blocks"],
+            ["runs", "Tool Runs"]
+          ].map(([key, label]) => (
+            <button className={toolEditorTab === key ? "active" : ""} key={key} type="button" onClick={() => setToolEditorTab(key)}>
+              {label}
+            </button>
+          ))}
+        </div>
+        {toolEditorTab === "page" ? <PagePanel tool={selectedTool} updateField={updateField} deleteTool={deleteTool} /> : null}
+        {toolEditorTab === "form" ? <FormPanel tool={selectedTool} updateField={updateField} /> : null}
+        {toolEditorTab === "prompt" ? <PromptPanel tool={selectedTool} updateField={updateField} /> : null}
+        {toolEditorTab === "seo" ? <SeoPanel tool={selectedTool} updateField={updateField} /> : null}
+        {toolEditorTab === "runs" ? <RunsPanel runs={runs} refreshRuns={refreshRuns} /> : null}
+      </EditorPanel>
+    ) : null}
+    </>
   );
 }
 
@@ -247,8 +421,11 @@ function GrowthPanel({ keywords, selectedKeywordIds, setKeywords, setSelectedKey
       .filter(Boolean);
 
     setKeywords((current) => [...additions, ...current]);
+    setSelectedKeywordIds((current) => [
+      ...new Set([...current, ...additions.map((keyword) => keyword.id)])
+    ]);
     setDraftText("");
-    setMessage(`${additions.length} keywords added locally. Save keywords to persist them.`);
+    setMessage(`${additions.length} keywords added and selected. Generate draft tools will save them automatically.`);
   }
 
   async function saveKeywords() {
@@ -273,7 +450,7 @@ function GrowthPanel({ keywords, selectedKeywordIds, setKeywords, setSelectedKey
     const response = await fetch("/api/admin/generate-tools", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
-      body: JSON.stringify({ keywordIds: selectedKeywordIds })
+      body: JSON.stringify({ keywordIds: selectedKeywordIds, keywords })
     });
     const payload = await response.json();
     if (!response.ok) {
@@ -513,9 +690,47 @@ function RunsPanel({ runs, refreshRuns }) {
   );
 }
 
-function EditorPanel({ title, action, children }) {
+function GlobalRunsPanel({ runs, refreshRuns }) {
   return (
-    <section className="panel pad">
+    <EditorPanel
+      title="All Runs"
+      action={<button className="btn" type="button" onClick={refreshRuns}>Refresh</button>}
+    >
+      {runs.length === 0 ? <p className="muted-line">No tool runs yet.</p> : null}
+      {runs.map((run) => (
+        <div className="run-card" key={run.id}>
+          <div className="run-head">
+            <strong>{run.toolName}</strong>
+            <span className="tag">{run.provider}</span>
+            <span className="muted-line">{new Date(run.createdAt).toLocaleString()}</span>
+            <span className="muted-line">{run.durationMs}ms</span>
+          </div>
+          {run.error ? <p className="error">{run.error}</p> : <pre className="result-preview">{run.result}</pre>}
+        </div>
+      ))}
+    </EditorPanel>
+  );
+}
+
+function SettingsPanel({ authEnabled }) {
+  return (
+    <EditorPanel title="Settings">
+      <p className={authEnabled ? "notice success" : "notice warn"}>
+        {authEnabled ? <ShieldCheck size={16} /> : <ShieldAlert size={16} />}
+        {authEnabled
+          ? "Admin password protection is enabled."
+          : "Admin password protection is disabled. Set ADMIN_PASSWORD before deployment."}
+      </p>
+      <div className="notice">
+        Database-backed storage is active when DATABASE_URL is set. OPENAI_API_KEY switches tool execution from mock output to the configured model provider.
+      </div>
+    </EditorPanel>
+  );
+}
+
+function EditorPanel({ title, action, anchorRef, children }) {
+  return (
+    <section className="panel pad" ref={anchorRef}>
       <div className="panel-head">
         <h2>{title}</h2>
         {action}

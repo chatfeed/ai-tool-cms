@@ -337,6 +337,11 @@ textarea.input {
   gap: 22px;
 }
 
+.admin-single {
+  display: grid;
+  gap: 22px;
+}
+
 .sidebar {
   position: sticky;
   top: 84px;
@@ -378,6 +383,8 @@ textarea.input {
 }
 
 .status-dot {
+  display: inline-block;
+  flex: 0 0 auto;
   width: 9px;
   height: 9px;
   border-radius: 99px;
@@ -411,6 +418,12 @@ textarea.input {
   border-color: var(--brand);
   background: var(--soft);
   color: var(--brand);
+}
+
+.compact-tabs {
+  margin-top: 0;
+  border-top: 0;
+  padding-top: 0;
 }
 
 .panel-head {
@@ -668,6 +681,109 @@ textarea.input {
   background: #fff;
 }
 
+.publish-toolbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 18px;
+  flex-wrap: wrap;
+}
+
+.tool-table-toolbar {
+  display: grid;
+  grid-template-columns: minmax(280px, 1fr) 150px 190px;
+  gap: 10px;
+}
+
+.selected-tool-strip {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 16px;
+  padding: 14px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fbfcff;
+}
+
+.selected-tool-strip p {
+  margin-bottom: 0;
+}
+
+.segmented {
+  display: inline-flex;
+  gap: 4px;
+  padding: 4px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.segmented button {
+  min-height: 34px;
+  padding: 7px 12px;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  color: var(--muted);
+  font-weight: 750;
+}
+
+.segmented button.active {
+  background: var(--soft);
+  color: var(--brand);
+}
+
+.publish-table {
+  display: grid;
+  gap: 8px;
+}
+
+.publish-row {
+  display: grid;
+  grid-template-columns: 28px minmax(190px, 1.3fr) 76px 100px minmax(180px, 1fr) 82px;
+  gap: 12px;
+  align-items: center;
+  padding: 12px;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.score-pill {
+  display: inline-flex;
+  justify-content: center;
+  padding: 6px 8px;
+  border-radius: 8px;
+  background: #fee2e2;
+  color: var(--danger);
+  font-weight: 850;
+}
+
+.score-pill.warn {
+  background: #fff7ed;
+  color: var(--warn);
+}
+
+.score-pill.good {
+  background: #f0fdfa;
+  color: var(--accent);
+}
+
+.publish-blockers {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+}
+
+.publish-blockers span {
+  padding: 4px 7px;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: var(--muted);
+  font-size: 12px;
+}
+
 @media (max-width: 900px) {
   .hero,
   .tool-layout,
@@ -696,5 +812,13 @@ textarea.input {
 
   .keyword-row {
     grid-template-columns: 28px 1fr;
+  }
+
+  .publish-row {
+    grid-template-columns: 28px 1fr;
+  }
+
+  .tool-table-toolbar {
+    grid-template-columns: 1fr;
   }
 }

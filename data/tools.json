@@ -1,5 +1,137 @@
 [
   {
+    "id": "6975f032-ae1d-4d36-9841-fefc621b98a9",
+    "status": "draft",
+    "slug": "video",
+    "name": "AI Video",
+    "category": "Writing",
+    "title": "Free Video Tool for Fast Content Work",
+    "description": "Use this free video tool to turn a short brief into a useful AI-generated result for writing workflows.",
+    "h1": "Free Video Tool",
+    "intro": "Create a practical result for video use cases in seconds. Enter a short brief, choose a style, and generate an output you can copy, edit, and reuse.",
+    "sourceKeywordId": "e0890029-2929-4ba8-8413-8fc1e07afc6f",
+    "fields": [
+      {
+        "key": "brief",
+        "label": "Brief",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Describe what you want the video tool to create",
+        "help": "Add audience, context, and constraints for better output."
+      },
+      {
+        "key": "style",
+        "label": "Style",
+        "type": "select",
+        "required": true,
+        "defaultValue": "practical",
+        "options": [
+          "practical",
+          "professional",
+          "friendly",
+          "concise",
+          "creative"
+        ]
+      }
+    ],
+    "prompt": {
+      "system": "You are an expert writing assistant.",
+      "userTemplate": "Act as a video tool. Create a {{style}} result from this brief: {{brief}}",
+      "model": "gpt-4o-mini",
+      "temperature": 0.7
+    },
+    "result": {
+      "format": "markdown",
+      "copyable": true
+    },
+    "seo": {
+      "steps": [
+        "Enter the brief or source material.",
+        "Choose the style that matches your audience.",
+        "Generate the result and refine the strongest version."
+      ],
+      "useCases": [
+        "Video for content planning",
+        "Video for marketing workflows",
+        "Video for productivity and drafting"
+      ],
+      "faqs": [
+        {
+          "question": "What is a video tool?",
+          "answer": "A video tool uses AI to turn your form input into a focused result for writing tasks."
+        },
+        {
+          "question": "How should I use the video output?",
+          "answer": "Use the generated result as a first draft, then edit it for accuracy, brand voice, and search intent."
+        }
+      ]
+    }
+  },
+  {
+    "id": "tool-summary",
+    "status": "published",
+    "slug": "ai-text-summarizer",
+    "name": "AI Text Summarizer",
+    "category": "Writing",
+    "title": "Free AI Text Summarizer for Articles and Notes",
+    "description": "Paste long text and get a concise summary with key points.",
+    "h1": "Free AI Text Summarizer",
+    "intro": "Turn long passages into compact summaries for research, notes, content planning, and internal documentation.",
+    "fields": [
+      {
+        "key": "text",
+        "label": "Text to summarize",
+        "type": "textarea",
+        "required": true,
+        "placeholder": "Paste your article, transcript, or notes"
+      },
+      {
+        "key": "style",
+        "label": "Summary style",
+        "type": "select",
+        "required": true,
+        "defaultValue": "bullet points",
+        "options": [
+          "bullet points",
+          "executive brief",
+          "plain language"
+        ]
+      }
+    ],
+    "prompt": {
+      "system": "You summarize text accurately and clearly.",
+      "userTemplate": "Summarize the following text in {{style}} style: {{text}}"
+    },
+    "result": {
+      "format": "markdown",
+      "copyable": true
+    },
+    "seo": {
+      "steps": [
+        "Paste the text you want to condense.",
+        "Choose the summary style.",
+        "Review the result and copy it into your workflow."
+      ],
+      "useCases": [
+        "Research notes",
+        "Meeting transcripts",
+        "Article summaries",
+        "Learning material"
+      ],
+      "faqs": [
+        {
+          "question": "Is this useful for long articles?",
+          "answer": "Yes. Longer inputs benefit from clearer summaries, especially when the source material has multiple sections."
+        },
+        {
+          "question": "Can I change the format?",
+          "answer": "The admin can configure field options and prompt templates for each tool page."
+        }
+      ]
+    },
+    "sourceKeywordId": null
+  },
+  {
     "id": "tool-title-generator",
     "status": "draft",
     "slug": "ai-title-generator",
@@ -72,69 +204,7 @@
           "answer": "Yes. Use the output as a strong draft, then align wording with your brand, keyword research, and SERP context."
         }
       ]
-    }
-  },
-  {
-    "id": "tool-summary",
-    "status": "published",
-    "slug": "ai-text-summarizer",
-    "name": "AI Text Summarizer",
-    "category": "Writing",
-    "title": "Free AI Text Summarizer for Articles and Notes",
-    "description": "Paste long text and get a concise summary with key points.",
-    "h1": "Free AI Text Summarizer",
-    "intro": "Turn long passages into compact summaries for research, notes, content planning, and internal documentation.",
-    "fields": [
-      {
-        "key": "text",
-        "label": "Text to summarize",
-        "type": "textarea",
-        "required": true,
-        "placeholder": "Paste your article, transcript, or notes"
-      },
-      {
-        "key": "style",
-        "label": "Summary style",
-        "type": "select",
-        "required": true,
-        "defaultValue": "bullet points",
-        "options": [
-          "bullet points",
-          "executive brief",
-          "plain language"
-        ]
-      }
-    ],
-    "prompt": {
-      "system": "You summarize text accurately and clearly.",
-      "userTemplate": "Summarize the following text in {{style}} style: {{text}}"
     },
-    "result": {
-      "format": "markdown",
-      "copyable": true
-    },
-    "seo": {
-      "steps": [
-        "Paste the text you want to condense.",
-        "Choose the summary style.",
-        "Review the result and copy it into your workflow."
-      ],
-      "useCases": [
-        "Research notes",
-        "Meeting transcripts",
-        "Article summaries",
-        "Learning material"
-      ],
-      "faqs": [
-        {
-          "question": "Is this useful for long articles?",
-          "answer": "Yes. Longer inputs benefit from clearer summaries, especially when the source material has multiple sections."
-        },
-        {
-          "question": "Can I change the format?",
-          "answer": "The admin can configure field options and prompt templates for each tool page."
-        }
-      ]
-    }
+    "sourceKeywordId": null
   }
 ]

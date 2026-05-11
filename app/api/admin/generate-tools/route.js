@@ -2,7 +2,7 @@ import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
 import { isAdminAuthEnabled, isAuthenticatedFromCookies } from "@/lib/auth";
 import { createToolFromKeyword } from "@/lib/growth";
-import { readKeywords, readTools, validateTools, writeKeywords, writeTools } from "@/lib/store";
+import { readKeywords, readTools, validateKeywords, validateTools, writeKeywords, writeTools } from "@/lib/store";
 
 export async function POST(request) {
   if (isAdminAuthEnabled() && !isAuthenticatedFromCookies(cookies())) {
@@ -12,11 +12,17 @@ export async function POST(request) {
   const body = await request.json();
   const keywordIds = Array.isArray(body.keywordIds) ? body.keywordIds : [];
   const tools = await readTools();
-  const keywords = await readKeywords();
+  const keywords = Array.isArray(body.keywords) ? body.keywords : await readKeywords();
+  const keywordValidationError = validateKeywords(keywords);
+
+  if (keywordValidationError) {
+    return NextResponse.json({ error: keywordValidationError }, { status: 400 });
+  }
+
   const selectedKeywords = keywords.filter((keyword) => keywordIds.includes(keyword.id));
 
   if (selectedKeywords.length === 0) {
-    return NextResponse.json({ error: "Select at least one keyword." }, { status: 400 });
+    return NextResponse.json({ error: "Select at least one saved or newly added keyword." }, { status: 400 });
   }
 
   const existingKeywordIds = new Set(tools.map((tool) => tool.sourceKeywordId).filter(Boolean));
